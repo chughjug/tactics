@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlRating = urlParams.get('rating');
     const urlTheme = urlParams.get('theme');
+    const urlCount = urlParams.get('count');
+    const displayCount = urlCount ? parseInt(urlCount, 10) : 100;
 
     if (urlTheme) {
         themeFilter.value = urlTheme;
@@ -81,10 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (filtered.length === 0) {
                     resultsDiv.innerHTML = '<p>No puzzles found matching those criteria.</p>';
                 } else {
-                    // Pick a random puzzle from the filtered list
-                    const randomIndex = Math.floor(Math.random() * filtered.length);
-                    const puzzle = filtered[randomIndex];
-                    displayPuzzle(puzzle);
+                    // Shuffle filtered array and take up to displayCount
+                    for (let i = filtered.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+                    }
+                    const selectedPuzzles = filtered.slice(0, displayCount);
+                    displayPuzzles(selectedPuzzles);
                 }
             })
             .catch(err => {
@@ -93,15 +98,18 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .finally(() => {
                 searchBtn.disabled = false;
-                searchBtn.textContent = 'Find a Puzzle';
+                searchBtn.textContent = 'Find Puzzles';
             });
     }
 
-    function displayPuzzle(puzzle) {
-        const themeHtml = puzzle.themes.filter(t => t).map(t => `<span class="theme">${t}</span>`).join('');
-        
-        resultsDiv.innerHTML = `
-            <div class="puzzle-card">
+    function displayPuzzles(puzzles) {
+        resultsDiv.innerHTML = '';
+        puzzles.forEach(puzzle => {
+            const themeHtml = puzzle.themes.filter(t => t).map(t => `<span class="theme">${t}</span>`).join('');
+            
+            const puzzleCard = document.createElement('div');
+            puzzleCard.className = 'puzzle-card';
+            puzzleCard.innerHTML = `
                 <div class="puzzle-header">
                     <h3>Puzzle ID: <a href="https://lichess.org/training/${puzzle.id}" target="_blank">${puzzle.id}</a></h3>
                     <strong>Rating: ${puzzle.rating}</strong>
@@ -113,7 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <button class="solution-btn" onclick="document.getElementById('sol-${puzzle.id}').style.display='block'; this.style.display='none'">Show Solution</button>
                 <div id="sol-${puzzle.id}" class="solution">Moves: ${puzzle.moves}</div>
-            </div>
-        `;
+            `;
+            resultsDiv.appendChild(puzzleCard);
+        });
     }
 });
