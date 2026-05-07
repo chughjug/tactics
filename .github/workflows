@@ -1,0 +1,49 @@
+name: Maia Chess API
+
+on:
+  workflow_dispatch:
+    inputs:
+      fen:
+        description: 'FEN string to evaluate'
+        required: true
+        default: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+      rating:
+        description: 'Target Elo Rating'
+        required: true
+        default: '1100'
+        type: choice
+        options:
+          - '1100'
+          - '1200'
+          - '1300'
+          - '1400'
+          - '1500'
+          - '1600'
+          - '1700'
+          - '1800'
+          - '1900'
+
+jobs:
+  run-maia:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install chess
+
+      - name: Install lc0 Engine
+        run: |
+          brew install lc0
+
+      - name: Get Maia Move
+        run: |
+          python maia_api.py --fen "${{ github.event.inputs.fen }}" --rating ${{ github.event.inputs.rating }}
