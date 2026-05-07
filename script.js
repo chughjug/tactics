@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
             puzzleCard.setAttribute('data-id', puzzle.id);
             puzzleCard.setAttribute('data-rating', puzzle.rating);
             puzzleCard.setAttribute('data-themes', puzzle.themes.join(','));
+            puzzleCard.setAttribute('data-moves', puzzle.moves);
             puzzleCard.innerHTML = `
                 <div class="puzzle-header">
                     <h3>Puzzle ID: <a href="https://lichess.org/training/${puzzle.id}" target="_blank" class="puzzle-link">${puzzle.id}</a></h3>
@@ -123,7 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="themes" style="margin-top: 5px;">${themeHtml}</div>
                 </div>
                 <button class="solution-btn" onclick="document.getElementById('sol-${puzzle.id}').style.display='block'; this.style.display='none'">Show Solution</button>
-                <div id="sol-${puzzle.id}" class="solution" data-moves="${puzzle.moves}">Moves: ${puzzle.moves}</div>
+                <div id="sol-${puzzle.id}" class="solution" data-moves="${puzzle.moves}">
+                    <strong>Moves:</strong> <span class="moves-text">${puzzle.moves}</span>
+                </div>
             `;
             resultsDiv.appendChild(puzzleCard);
         });
