@@ -4,6 +4,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsDiv = document.getElementById('results');
     const themeFilter = document.getElementById('themeFilter');
 
+    // Parse URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRating = urlParams.get('rating');
+    const urlTheme = urlParams.get('theme');
+
+    if (urlTheme) {
+        themeFilter.value = urlTheme;
+    }
+
     // Load available rating blocks from meta.json
     fetch('api/puzzles/meta.json')
         .then(response => response.json())
@@ -11,8 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ratingSelect.innerHTML = ''; // clear loading
             const options = data.available_ratings;
             
-            // Set 1500 as default if available
-            let defaultIndex = options.indexOf(1500);
+            // Set default: from URL if valid, else 1500.
+            let selectedRating = urlRating ? parseInt(urlRating, 10) : 1500;
+            let defaultIndex = options.indexOf(selectedRating);
+            if (defaultIndex === -1) defaultIndex = options.indexOf(1500);
             if (defaultIndex === -1) defaultIndex = 0;
 
             options.forEach((block, index) => {
@@ -22,6 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (index === defaultIndex) opt.selected = true;
                 ratingSelect.appendChild(opt);
             });
+
+            // Perform automatic search if URL parameters were provided
+            if (urlRating || urlTheme) {
+                performSearch(false);
+            }
         })
         .catch(err => {
             console.error('Failed to load metadata:', err);
@@ -29,10 +45,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     searchBtn.addEventListener('click', () => {
+        performSearch(true); // Update URL on manual click
+    });
+
+    function performSearch(updateUrl = false) {
         const selectedBlock = ratingSelect.value;
         const themeToFind = themeFilter.value.trim().toLowerCase();
 
         if (!selectedBlock) return;
+
+        if (updateUrl) {
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('rating', selectedBlock);
+            if (themeToFind) {
+                newUrl.searchParams.set('theme', themeFilter.value.trim());
+            } else {
+                newUrl.searchParams.delete('theme');
+            }
+            window.history.pushState({}, '', newUrl);
+        }
 
         searchBtn.disabled = true;
         searchBtn.textContent = 'Searching...';
@@ -64,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchBtn.disabled = false;
                 searchBtn.textContent = 'Find a Puzzle';
             });
-    });
+    }
 
     function displayPuzzle(puzzle) {
         const themeHtml = puzzle.themes.filter(t => t).map(t => `<span class="theme">${t}</span>`).join('');
