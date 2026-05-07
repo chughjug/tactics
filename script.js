@@ -109,18 +109,21 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const puzzleCard = document.createElement('div');
             puzzleCard.className = 'puzzle-card';
+            puzzleCard.setAttribute('data-id', puzzle.id);
+            puzzleCard.setAttribute('data-rating', puzzle.rating);
+            puzzleCard.setAttribute('data-themes', puzzle.themes.join(','));
             puzzleCard.innerHTML = `
                 <div class="puzzle-header">
-                    <h3>Puzzle ID: <a href="https://lichess.org/training/${puzzle.id}" target="_blank">${puzzle.id}</a></h3>
-                    <strong>Rating: ${puzzle.rating}</strong>
+                    <h3>Puzzle ID: <a href="https://lichess.org/training/${puzzle.id}" target="_blank" class="puzzle-link">${puzzle.id}</a></h3>
+                    <strong class="puzzle-rating">Rating: ${puzzle.rating}</strong>
                 </div>
-                <div class="fen">FEN: ${puzzle.fen}</div>
-                <div style="margin: 15px 0;">
+                <div class="fen" data-fen="${puzzle.fen}">FEN: ${puzzle.fen}</div>
+                <div class="themes-container" style="margin: 15px 0;">
                     <strong>Themes:</strong> 
                     <div class="themes" style="margin-top: 5px;">${themeHtml}</div>
                 </div>
                 <button class="solution-btn" onclick="document.getElementById('sol-${puzzle.id}').style.display='block'; this.style.display='none'">Show Solution</button>
-                <div id="sol-${puzzle.id}" class="solution">Moves: ${puzzle.moves}</div>
+                <div id="sol-${puzzle.id}" class="solution" data-moves="${puzzle.moves}">Moves: ${puzzle.moves}</div>
             `;
             resultsDiv.appendChild(puzzleCard);
         });
