@@ -56,15 +56,20 @@ def maia_endpoint():
     rating_str = request.args.get('rating', default="1100")
     
     try:
-        rating = int(rating_str)
+        raw_rating = int(rating_str)
+        # Clamp to 1100-1900 range
+        raw_rating = max(1100, min(1900, raw_rating))
+        # Round to nearest 100 to map to an available model
+        rating = round(raw_rating / 100.0) * 100
     except ValueError:
         return jsonify({"error": "Rating must be an integer"}), 400
-        
-    if rating not in [1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900]:
-        return jsonify({"error": "Invalid rating. Must be between 1100 and 1900 in increments of 100."}), 400
 
     result = get_maia_move(fen, rating)
     
+    # Let's also include the requested_rating so users know what was processed
+    if "error" not in result:
+        result["requested_rating"] = int(rating_str)
+
     if "error" in result:
         return jsonify(result), 500
         

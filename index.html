@@ -45,17 +45,7 @@
         <p>Given the FEN of a puzzle above (or any setup), predict what a human engine would do.</p>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <input type="text" id="maiaFen" placeholder="Copy/paste a FEN here..." style="flex-grow:1; min-width:300px;">
-            <select id="maiaRating">
-                <option value="1100">Elo 1100</option>
-                <option value="1200">Elo 1200</option>
-                <option value="1300">Elo 1300</option>
-                <option value="1400">Elo 1400</option>
-                <option value="1500" selected>Elo 1500</option>
-                <option value="1600">Elo 1600</option>
-                <option value="1700">Elo 1700</option>
-                <option value="1800">Elo 1800</option>
-                <option value="1900">Elo 1900</option>
-            </select>
+            <input type="number" id="maiaRating" placeholder="Elo (e.g. 1450)" value="1500" style="width: 120px;">
             <button onclick="askMaia()" style="background:#17a2b8;">Get Move</button>
         </div>
         <p style="margin-top:15px; font-size:18px;"><strong>Move:</strong> <span id="maiaResult" style="color:#007bff;">Waiting for input...</span></p>

@@ -22,17 +22,7 @@
         <input type="text" id="maiaFen" placeholder="Enter FEN here...">
         
         <label style="font-weight:bold;">Target Elo Rating:</label>
-        <select id="maiaRating">
-            <option value="1100">Elo 1100</option>
-            <option value="1200">Elo 1200</option>
-            <option value="1300">Elo 1300</option>
-            <option value="1400">Elo 1400</option>
-            <option value="1500" selected>Elo 1500</option>
-            <option value="1600">Elo 1600</option>
-            <option value="1700">Elo 1700</option>
-            <option value="1800">Elo 1800</option>
-            <option value="1900">Elo 1900</option>
-        </select>
+        <input type="number" id="maiaRating" placeholder="e.g. 1500" value="1500">
         
         <button onclick="askMaia()">Fetch Human Move Prediction</button>
         <div class="result"><strong>Recommended Move:</strong> <br><span id="maiaResult" style="color:#007bff; font-weight:bold; font-size: 28px;">Ready</span></div>
@@ -83,17 +73,8 @@
             }
             
             if (ratingParam) {
-                const ratingSelect = document.getElementById('maiaRating');
-                let targetVal = parseInt(ratingParam);
-                
-                // Map arbitrary Elo string to the closest supported hundreds bracket (1100 to 1900)
-                if (targetVal < 1100) targetVal = 1100;
-                else if (targetVal > 1900) targetVal = 1900;
-                else {
-                    targetVal = Math.round(targetVal / 100) * 100;
-                }
-                
-                ratingSelect.value = targetVal;
+                const ratingInput = document.getElementById('maiaRating');
+                ratingInput.value = ratingParam;
             }
 
             // Auto-trigger calculation if a FEN was provided instantly on page load
