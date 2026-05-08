@@ -18,15 +18,17 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     unzip \
     libopenblas-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install lc0 from GitHub releases (since it's not natively in the jammy repository)
+# Clone and build lc0 from source
 WORKDIR /opt
-RUN wget https://github.com/LeelaChessZero/lc0/releases/download/v0.31.2/lc0-v0.31.2-linux-cpu-openblas.tar.gz && \
-    tar -xzvf lc0-v0.31.2-linux-cpu-openblas.tar.gz && \
-    cp lc0-v0.31.2-linux-cpu-openblas/lc0 /usr/local/bin/ && \
-    chmod +x /usr/local/bin/lc0 && \
-    rm -rf lc0*
+RUN git clone -b v0.32.1 --recurse-submodules https://github.com/LeelaChessZero/lc0.git && \
+    cd lc0 && \
+    ./build.sh && \
+    cp build/release/lc0 /usr/local/bin/ && \
+    cd /opt && \
+    rm -rf lc0
 
 # Set the working directory
 WORKDIR /app
