@@ -132,3 +132,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// MAIA Integration
+async function askMaia() {
+    const fen = document.getElementById("maiaFen").value.trim();
+    const rating = document.getElementById("maiaRating").value;
+    const resultSpan = document.getElementById("maiaResult");
+
+    if (!fen) {
+        resultSpan.innerText = "Please enter a valid FEN string!";
+        resultSpan.style.color = "red";
+        return;
+    }
+
+    resultSpan.innerText = "Maia is thinking... 🧠";
+    resultSpan.style.color = "orange";
+
+    try {
+        // Because Flask now serves this file dynamically at the root URL (/) 
+        // we can just call the relative API path instead of writing the full absolute Render URL!
+        const response = await fetch(`/api/maia?fen=${encodeURIComponent(fen)}&rating=${rating}`);
+        const data = await response.json();
+
+        if (data.error) {
+            resultSpan.innerText = "Error: " + data.error;
+            resultSpan.style.color = "red";
+        } else {
+            resultSpan.innerText = data.recommended_move;
+            resultSpan.style.color = "green";
+        }
+    } catch (err) {
+        resultSpan.innerText = "Error reaching Maia API!";
+        resultSpan.style.color = "red";
+    }
+}
