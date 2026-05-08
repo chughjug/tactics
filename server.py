@@ -5,8 +5,12 @@ import chess.engine
 import os
 import subprocess
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app) # Enables GitHub Pages front-end to call this API without Cross-Origin blocking
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
 
 def get_maia_move(fen, rating):
     models_dir = os.path.join(os.path.dirname(__file__), "maia-chess-master 2", "maia_weights")
