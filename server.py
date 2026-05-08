@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import chess
 import chess.engine
 import os
 import subprocess
 
 app = Flask(__name__)
+CORS(app) # Enables GitHub Pages front-end to call this API without Cross-Origin blocking
 
 def get_maia_move(fen, rating):
     models_dir = os.path.join(os.path.dirname(__file__), "maia-chess-master 2", "maia_weights")
