@@ -12,6 +12,10 @@ CORS(app) # Enables GitHub Pages front-end to call this API without Cross-Origin
 def index():
     return app.send_static_file('index.html')
 
+@app.route('/maia')
+def maia_page():
+    return app.send_static_file('maia.html')
+
 def get_maia_move(fen, rating):
     models_dir = os.path.join(os.path.dirname(__file__), "maia-chess-master 2", "maia_weights")
     model_path = os.path.join(models_dir, f"maia-{rating}.pb.gz")

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maia Shadowbot Predictor</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background: #eaf2ff; display: flex; justify-content: center; height: 100vh; align-items: flex-start; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 8px; border: 2px solid #007bff; max-width: 600px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 50px; }
+        input, select, button { padding: 12px; margin: 10px 0 20px 0; font-size: 16px; border-radius: 4px; border: 1px solid #ccc; width: 100%; box-sizing: border-box; }
+        button { background: #17a2b8; color: white; cursor: pointer; border: none; font-weight: bold; }
+        button:hover { background: #138496; }
+        .result { margin-top: 15px; font-size: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="margin-top:0; color:#333; text-align:center;">🤖 Maia Shadowbot API Interface</h2>
+        <p style="color:#666; text-align:center;">You can launch this page with URL parameters to auto-predict a move!<br><br><code>/maia?rating=1200&fen=...</code></p>
+        
+        <label style="font-weight:bold;">FEN String:</label>
+        <input type="text" id="maiaFen" placeholder="Enter FEN here...">
+        
+        <label style="font-weight:bold;">Target Elo Rating:</label>
+        <select id="maiaRating">
+            <option value="1100">Elo 1100</option>
+            <option value="1200">Elo 1200</option>
+            <option value="1300">Elo 1300</option>
+            <option value="1400">Elo 1400</option>
+            <option value="1500" selected>Elo 1500</option>
+            <option value="1600">Elo 1600</option>
+            <option value="1700">Elo 1700</option>
+            <option value="1800">Elo 1800</option>
+            <option value="1900">Elo 1900</option>
+        </select>
+        
+        <button onclick="askMaia()">Fetch Human Move Prediction</button>
+        <div class="result"><strong>Recommended Move:</strong> <br><span id="maiaResult" style="color:#007bff; font-weight:bold; font-size: 28px;">Ready</span></div>
+    </div>
+
+    <script>
+        async function askMaia() {
+            const fen = document.getElementById("maiaFen").value.trim();
+            const rating = document.getElementById("maiaRating").value;
+            const resultSpan = document.getElementById("maiaResult");
+
+            if (!fen) {
+                resultSpan.innerText = "Missing FEN!";
+                resultSpan.style.color = "red";
+                return;
+            }
+
+            resultSpan.innerText = "Thinking... 🧠";
+            resultSpan.style.color = "orange";
+
+            try {
+                // Call backend API
+                const response = await fetch(`/api/maia?fen=${encodeURIComponent(fen)}&rating=${rating}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    resultSpan.innerText = "Error: " + data.error;
+                    resultSpan.style.color = "red";
+                } else {
+                    resultSpan.innerText = data.recommended_move;
+                    resultSpan.style.color = "green";
+                }
+            } catch (err) {
+                resultSpan.innerText = "API offline/error!";
+                resultSpan.style.color = "red";
+            }
+        }
+
+        // Auto-fill from URL parameters and automatically fetch move
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const fenParam = params.get('fen');
+            // support 'rating' or 'elo' alias from URL
+            const ratingParam = params.get('rating') || params.get('elo');
+
+            if (fenParam) {
+                document.getElementById('maiaFen').value = fenParam;
+            }
+            
+            if (ratingParam) {
+                const ratingSelect = document.getElementById('maiaRating');
+                let targetVal = parseInt(ratingParam);
+                
+                // Map arbitrary Elo string to the closest supported hundreds bracket (1100 to 1900)
+                if (targetVal < 1100) targetVal = 1100;
+                else if (targetVal > 1900) targetVal = 1900;
+                else {
+                    targetVal = Math.round(targetVal / 100) * 100;
+                }
+                
+                ratingSelect.value = targetVal;
+            }
+
+            // Auto-trigger calculation if a FEN was provided instantly on page load
+            if (fenParam) {
+                askMaia(); 
+            }
+        };
+    </script>
+</body>
+</html>
