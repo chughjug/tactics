@@ -1,7 +1,9 @@
 name: Generate LogiqBoard Link
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Keeps the manual "Run workflow" button in GitHub
+  repository_dispatch:
+    types: [create_board_session] # Custom event type for your API trigger
 
 jobs:
   create-board:
@@ -24,22 +26,13 @@ jobs:
 
           def create_board():
               with sync_playwright() as p:
-                  # Launch the browser
                   browser = p.chromium.launch(headless=True)
-                  
-                  # Create a new, isolated browser context. 
-                  # This acts as an incognito window, ensuring cache and cookies are entirely cleared for every run.
                   context = browser.new_context()
                   page = context.new_page()
                   
                   try:
-                      # Navigate to the site
                       page.goto('https://logiqboard.com/')
-                      
-                      # Click the button using its specific CSS class
                       page.locator('button.create-board-btn').click()
-                      
-                      # Wait dynamically for the URL to redirect to the new board room
                       page.wait_for_url('**/boards/*') 
                       
                       print('=== Board Successfully Created ===')
@@ -48,7 +41,6 @@ jobs:
                   except Exception as e:
                       print(f'Error occurred: {e}')
                   finally:
-                      # Clean up
                       context.close()
                       browser.close()
 
