@@ -1,7 +1,7 @@
 name: Generate LogiqBoard Link
 
 on:
-  workflow_dispatch: # Allows you to manually trigger the script from the Actions tab
+  workflow_dispatch:
 
 jobs:
   create-board:
@@ -24,22 +24,33 @@ jobs:
 
           def create_board():
               with sync_playwright() as p:
+                  # Launch the browser
                   browser = p.chromium.launch(headless=True)
-                  page = browser.new_page()
                   
-                  # Navigate to the main site
-                  page.goto('https://logiqboard.com/')
+                  # Create a new, isolated browser context. 
+                  # This acts as an incognito window, ensuring cache and cookies are entirely cleared for every run.
+                  context = browser.new_context()
+                  page = context.new_page()
                   
-                  # Trigger the board creation
-                  page.click('text=\"Create board\"')
-                  
-                  # Wait for the redirect and URL generation to complete
-                  page.wait_for_timeout(3000) 
-                  
-                  print('=== Board Successfully Created ===')
-                  print(f'Shared Room URL: {page.url}')
-                  
-                  browser.close()
+                  try:
+                      # Navigate to the site
+                      page.goto('https://logiqboard.com/')
+                      
+                      # Click the button using its specific CSS class
+                      page.locator('button.create-board-btn').click()
+                      
+                      # Wait dynamically for the URL to redirect to the new board room
+                      page.wait_for_url('**/boards/*') 
+                      
+                      print('=== Board Successfully Created ===')
+                      print(f'Shared Room URL: {page.url}')
+                      
+                  except Exception as e:
+                      print(f'Error occurred: {e}')
+                  finally:
+                      # Clean up
+                      context.close()
+                      browser.close()
 
           if __name__ == '__main__':
               create_board()
