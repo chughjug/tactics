@@ -1,0 +1,46 @@
+name: Generate LogiqBoard Link
+
+on:
+  workflow_dispatch: # Allows you to manually trigger the script from the Actions tab
+
+jobs:
+  create-board:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Generate and Scrape Link
+        run: |
+          python -c "
+          from playwright.sync_api import sync_playwright
+
+          def create_board():
+              with sync_playwright() as p:
+                  browser = p.chromium.launch(headless=True)
+                  page = browser.new_page()
+                  
+                  # Navigate to the main site
+                  page.goto('https://logiqboard.com/')
+                  
+                  # Trigger the board creation
+                  page.click('text=\"Create board\"')
+                  
+                  # Wait for the redirect and URL generation to complete
+                  page.wait_for_timeout(3000) 
+                  
+                  print('=== Board Successfully Created ===')
+                  print(f'Shared Room URL: {page.url}')
+                  
+                  browser.close()
+
+          if __name__ == '__main__':
+              create_board()
+          "
