@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poker Equity Calculator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 { text-align: center; font-size: 26px; margin-bottom: 4px; color: #f0c040; letter-spacing: 0.5px; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 24px; font-size: 13px; }
+    .main { max-width: 820px; margin: 0 auto; }
+
+    .player-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 8px; background: #161b22; border-radius: 8px;
+      padding: 12px 14px; border: 1px solid #21262d; flex-wrap: wrap;
+    }
+    .player-info { min-width: 80px; }
+    .player-label { font-size: 13px; font-weight: 600; color: #8b949e; }
+    .hand-name-tag { font-size: 11px; color: #58a6a0; margin-top: 2px; min-height: 14px; }
+    .hand-slots { display: flex; gap: 5px; }
+
+    .card-slot {
+      width: 44px; height: 60px; border-radius: 5px;
+      border: 2px dashed #30363d;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s;
+      background: #0d1117; flex-shrink: 0;
+    }
+    .card-slot:hover { border-color: #58a6ff; }
+    .card-slot.active { border-color: #f0c040; border-style: solid; box-shadow: 0 0 10px #f0c04055; }
+    .card-slot.filled { border-style: solid; border-color: #30363d; }
+    .card-slot.filled:hover { border-color: #e05050; }
+
+    .card-face {
+      width: 100%; height: 100%; border-radius: 3px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1px;
+    }
+    .card-face.red  { background: #fff; color: #c62828; }
+    .card-face.black { background: #fff; color: #111; }
+    .card-face .cr { font-size: 17px; font-weight: 700; line-height: 1; }
+    .card-face .cs { font-size: 14px; line-height: 1; }
+    .empty-card { color: #3d444d; font-size: 10px; text-align: center; line-height: 1.4; padding: 4px; }
+
+    .result-box { margin-left: auto; text-align: right; min-width: 120px; }
+    .result-pct { font-size: 24px; font-weight: 700; line-height: 1; }
+    .result-pct.leader { color: #3fb950; }
+    .result-pct.loser  { color: #e05050; }
+    .result-pct.tied   { color: #d29922; }
+    .result-sub  { font-size: 11px; color: #8b949e; margin-top: 2px; }
+    .result-bar  { height: 5px; background: #21262d; border-radius: 3px; margin-top: 5px; overflow: hidden; }
+    .result-bar-fill { height: 100%; background: #3fb950; transition: width 0.4s ease; border-radius: 3px; }
+    .result-hand { font-size: 10px; color: #6a9; margin-top: 4px; }
+
+    .remove-btn {
+      background: none; border: none; color: #3d444d; cursor: pointer;
+      font-size: 16px; padding: 6px; line-height: 1; border-radius: 4px; transition: color 0.1s;
+    }
+    .remove-btn:hover { color: #e05050; }
+
+    .add-player-btn {
+      width: 100%; background: #161b22; border: 1px dashed #30363d;
+      color: #8b949e; padding: 10px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; margin-bottom: 16px; transition: all 0.12s;
+    }
+    .add-player-btn:hover { border-color: #f0c040; color: #f0c040; }
+
+    .section-box {
+      background: #161b22; border-radius: 8px; padding: 14px;
+      border: 1px solid #21262d; margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+      color: #8b949e; margin-bottom: 10px;
+    }
+    .board-slots { display: flex; gap: 6px; align-items: flex-end; flex-wrap: wrap; }
+    .board-slot-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .board-slot-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+    .board-divider { color: #21262d; font-size: 20px; margin-bottom: 16px; padding: 0 2px; user-select: none; }
+
+    .picker-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px; flex-wrap: wrap; gap: 6px;
+    }
+    .active-info { font-size: 13px; color: #f0c040; }
+    .active-info .dim { color: #8b949e; }
+
+    .card-grid {
+      display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px;
+    }
+    .deck-card {
+      aspect-ratio: 3/4; border-radius: 4px; border: 1px solid #21262d;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; font-weight: 700; background: #fff;
+      transition: transform 0.1s, box-shadow 0.1s; user-select: none;
+    }
+    .deck-card:hover:not(.used) { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,.5); position: relative; z-index: 1; }
+    .deck-card.used { opacity: 0.15; cursor: not-allowed; pointer-events: none; }
+    .deck-card .dr { font-size: 12px; line-height: 1.3; }
+    .deck-card .ds { font-size: 11px; line-height: 1.1; }
+    .deck-card.red-card   { color: #c62828; }
+    .deck-card.black-card { color: #111; }
+
+    .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; flex-wrap: wrap; }
+    .btn-run {
+      background: #f0c040; color: #111; border: none;
+      padding: 12px 36px; border-radius: 6px; cursor: pointer;
+      font-size: 15px; font-weight: 700; transition: background 0.12s;
+    }
+    .btn-run:hover:not(:disabled) { background: #d4a800; }
+    .btn-run:disabled { background: #3d444d; color: #8b949e; cursor: not-allowed; }
+    .btn-sec {
+      background: #21262d; color: #8b949e; border: 1px solid #30363d;
+      padding: 12px 22px; border-radius: 6px; cursor: pointer;
+      font-size: 14px; transition: background 0.12s;
+    }
+    .btn-sec:hover { background: #30363d; color: #e0e0e0; }
+    .btn-example {
+      background: #1c2d40; color: #58a6ff; border: 1px solid #1f6feb;
+      padding: 12px 20px; border-radius: 6px; cursor: pointer;
+      font-size: 14px; transition: background 0.12s;
+    }
+    .btn-example:hover { background: #1f3550; }
+    .status { text-align: center; color: #8b949e; font-size: 13px; min-height: 18px; }
+  </style>
+</head>
+<body>
+<div class="main">
+  <h1>Poker Equity Calculator</h1>
+  <p class="subtitle">Texas Hold'em · Monte Carlo simulation</p>
+
+  <div id="playersSection"></div>
+  <button class="add-player-btn" id="addPlayerBtn">+ Add Player (max 9)</button>
+
+  <div class="section-box">
+    <div class="section-title">Community Cards (Board)</div>
+    <div class="board-slots" id="boardSlots"></div>
+  </div>
+
+  <div class="section-box">
+    <div class="picker-header">
+      <div class="section-title" style="margin-bottom:0">Card Picker</div>
+      <div class="active-info" id="activeInfo"><span class="dim">Click a slot above to start</span></div>
+    </div>
+    <div class="card-grid" id="cardGrid"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-example" id="exampleBtn">Load Example</button>
+    <button class="btn-sec" id="clearBtn">Clear All</button>
+    <button class="btn-run" id="runBtn">Run Simulation</button>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const RANKS = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
+const SYMS  = ['♣','♦','♥','♠'];
+const IS_RED = [false, true, true, false]; // clubs diamonds hearts spades
+
+const HAND_NAMES = [
+  'High Card','One Pair','Two Pair','Three of a Kind',
+  'Straight','Flush','Full House','Four of a Kind','Straight Flush'
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let players    = [{cards:[null,null]},{cards:[null,null]}];
+let board      = [null,null,null,null,null];
+let activeSlot = {type:'player', pi:0, ci:0};
+let results    = null;
+
+// ── Card helpers ───────────────────────────────────────────────────────────
+function usedSet() {
+  const s = new Set();
+  for (const p of players) for (const c of p.cards) if (c) s.add(c.rank*4+c.suit);
+  for (const c of board)   if (c) s.add(c.rank*4+c.suit);
+  return s;
+}
+
+// ── Hand Evaluator ─────────────────────────────────────────────────────────
+function evaluate5(cards) {
+  // cards: exactly 5 {rank, suit} objects
+  const ranks = cards.map(c => c.rank).sort((a,b) => b-a);
+  const flush = cards.every(c => c.suit === cards[0].suit);
+
+  let straight = false, top = -1;
+  if (new Set(ranks).size === 5) {
+    if (ranks[0] - ranks[4] === 4) {
+      straight = true; top = ranks[0];
+    } else if (ranks[0]===12 && ranks[1]===3 && ranks[2]===2 && ranks[3]===1 && ranks[4]===0) {
+      straight = true; top = 3; // wheel: A-2-3-4-5 is a 5-high straight
+    }
+  }
+
+  const freq = {};
+  for (const r of ranks) freq[r] = (freq[r]||0)+1;
+  const g = Object.entries(freq).map(([r,c])=>[+r,c]).sort((a,b)=>b[1]-a[1]||b[0]-a[0]);
+
+  if (flush && straight)               return {cat:8, tb:[top]};
+  if (g[0][1]===4)                     return {cat:7, tb:[g[0][0],g[1][0]]};
+  if (g[0][1]===3 && g[1][1]===2)     return {cat:6, tb:[g[0][0],g[1][0]]};
+  if (flush)                           return {cat:5, tb:ranks};
+  if (straight)                        return {cat:4, tb:[top]};
+  if (g[0][1]===3)                     return {cat:3, tb:[g[0][0],g[1][0],g[2][0]]};
+  if (g[0][1]===2 && g[1][1]===2)     return {cat:2, tb:[g[0][0],g[1][0],g[2][0]]};
+  if (g[0][1]===2)                     return {cat:1, tb:[g[0][0],g[1][0],g[2][0],g[3][0]]};
+  return {cat:0, tb:ranks};
+}
+
+function cmp(h1, h2) {
+  if (h1.cat !== h2.cat) return h1.cat - h2.cat;
+  for (let i = 0; i < Math.max(h1.tb.length, h2.tb.length); i++) {
+    const d = (h1.tb[i]??-1) - (h2.tb[i]??-1);
+    if (d) return d;
+  }
+  return 0;
+}
+
+// Evaluate best 5-card hand from 5, 6, or 7 cards
+function evaluateBest(cards) {
+  const n = cards.length;
+  if (n < 5) return null;
+  if (n === 5) return evaluate5(cards);
+
+  let best = null;
+  const tryFive = five => { const h = evaluate5(five); if (!best || cmp(h,best)>0) best=h; };
+
+  if (n === 6) {
+    for (let skip = 0; skip < 6; skip++)
+      tryFive(cards.filter((_,i)=>i!==skip));
+  } else {
+    for (let i = 0; i < 7; i++)
+      for (let j = i+1; j < 7; j++)
+        tryFive(cards.filter((_,k)=>k!==i&&k!==j));
+  }
+  return best;
+}
+
+// ── Monte Carlo ────────────────────────────────────────────────────────────
+function buildDeck(excluded) {
+  const ex = new Set(excluded.map(c=>c.rank*4+c.suit));
+  const deck = [];
+  for (let r = 0; r < 13; r++)
+    for (let s = 0; s < 4; s++)
+      if (!ex.has(r*4+s)) deck.push({rank:r,suit:s});
+  return deck;
+}
+
+function shuffle(a) {
+  for (let i = a.length-1; i > 0; i--) {
+    const j = (Math.random()*(i+1))|0;
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+}
+
+function simulate(playerHands, knownBoard, nIter) {
+  const n = playerHands.length;
+  const wins = new Int32Array(n);
+  const ties = new Int32Array(n);
+  const need = 5 - knownBoard.length;
+  const fixed = [...playerHands.flat(), ...knownBoard];
+
+  for (let it = 0; it < nIter; it++) {
+    const deck = buildDeck(fixed);
+    shuffle(deck);
+    const brd = [...knownBoard, ...deck.slice(0, need)];
+
+    const hands = playerHands.map(ph => evaluateBest([...ph, ...brd]));
+    let best = hands[0];
+    for (let p = 1; p < n; p++) if (cmp(hands[p],best)>0) best = hands[p];
+
+    const winners = [];
+    for (let p = 0; p < n; p++) if (cmp(hands[p],best)===0) winners.push(p);
+
+    if (winners.length===1) wins[winners[0]]++;
+    else for (const w of winners) ties[w]++;
+  }
+
+  return Array.from({length:n}, (_,i) => ({
+    win:  wins[i]/nIter,
+    tie:  ties[i]/nIter,
+    loss: 1 - wins[i]/nIter - ties[i]/nIter,
+  }));
+}
+
+function exactResult(playerHands, knownBoard) {
+  const hands = playerHands.map(ph => evaluateBest([...ph, ...knownBoard]));
+  let best = hands[0];
+  for (let p = 1; p < hands.length; p++) if (cmp(hands[p],best)>0) best = hands[p];
+  const winners = hands.map((h,i)=>cmp(h,best)===0?i:-1).filter(i=>i>=0);
+  return hands.map((h,i)=>({
+    win:      winners.length===1 && winners[0]===i ? 1 : 0,
+    tie:      winners.length>1  && winners.includes(i) ? 1 : 0,
+    loss:     !winners.includes(i) ? 1 : 0,
+    handName: HAND_NAMES[h.cat],
+  }));
+}
+
+// ── Display helpers ────────────────────────────────────────────────────────
+function describeHand(pi) {
+  const hole = players[pi].cards.filter(Boolean);
+  const brd  = board.filter(Boolean);
+  if (hole.length < 2) return '';
+  const all = [...hole, ...brd];
+  if (all.length >= 5) {
+    const h = evaluateBest(all);
+    return h ? HAND_NAMES[h.cat] : '';
+  }
+  const [c1,c2] = hole;
+  if (c1.rank === c2.rank) return 'Pocket ' + RANKS[c1.rank] + 's';
+  const hi = Math.max(c1.rank,c2.rank), lo = Math.min(c1.rank,c2.rank);
+  return RANKS[hi] + RANKS[lo] + (c1.suit===c2.suit ? ' suited' : ' offsuit');
+}
+
+function resultClass(r) {
+  if (r.win > 0.5) return 'leader';
+  if (r.loss > 0.5) return 'loser';
+  return 'tied';
+}
+
+function cardFaceHTML(card) {
+  if (!card) return '<div class="empty-card">click<br>to set</div>';
+  const cls = IS_RED[card.suit] ? 'red' : 'black';
+  return '<div class="card-face ' + cls + '"><span class="cr">' + RANKS[card.rank] + '</span><span class="cs">' + SYMS[card.suit] + '</span></div>';
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function render() {
+  renderPlayers();
+  renderBoard();
+  renderCardGrid();
+  renderActiveInfo();
+}
+
+function isActive(type, a, b) {
+  if (!activeSlot) return false;
+  if (type === 'player') return activeSlot.type==='player' && activeSlot.pi===a && activeSlot.ci===b;
+  return activeSlot.type==='board' && activeSlot.ci===a;
+}
+
+function renderPlayers() {
+  const sec = document.getElementById('playersSection');
+  sec.innerHTML = '';
+  players.forEach((p, pi) => {
+    const res  = results && results[pi];
+    const desc = describeHand(pi);
+    const pct  = res ? (res.win*100).toFixed(1) : null;
+
+    let resHTML = '';
+    if (res) {
+      const cls = resultClass(res);
+      resHTML = '<div class="result-pct ' + cls + '">' + pct + '%</div>'
+              + '<div class="result-sub">Tie ' + (res.tie*100).toFixed(1) + '% · Loss ' + (res.loss*100).toFixed(1) + '%</div>'
+              + '<div class="result-bar"><div class="result-bar-fill" style="width:' + pct + '%"></div></div>'
+              + (res.handName ? '<div class="result-hand">' + res.handName + '</div>' : '');
+    }
+
+    let slotsHTML = '';
+    for (let ci = 0; ci < 2; ci++) {
+      const card   = p.cards[ci];
+      const active = isActive('player', pi, ci);
+      slotsHTML += '<div class="card-slot' + (card?' filled':'') + (active?' active':'') + '" data-pt="p" data-pi="' + pi + '" data-ci="' + ci + '">' + cardFaceHTML(card) + '</div>';
+    }
+
+    const removeBtn = players.length > 2
+      ? '<button class="remove-btn" data-rpi="' + pi + '" title="Remove player">✕</button>'
+      : '';
+
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = '<div class="player-info"><div class="player-label">Player ' + (pi+1) + '</div><div class="hand-name-tag">' + desc + '</div></div>'
+                  + '<div class="hand-slots">' + slotsHTML + '</div>'
+                  + '<div class="result-box">' + resHTML + '</div>'
+                  + removeBtn;
+    sec.appendChild(row);
+  });
+
+  sec.querySelectorAll('[data-pt="p"]').forEach(el => {
+    el.addEventListener('click', () => {
+      const pi = +el.dataset.pi, ci = +el.dataset.ci;
+      if (players[pi].cards[ci]) { players[pi].cards[ci] = null; results = null; }
+      activeSlot = {type:'player', pi, ci};
+      render();
+    });
+  });
+  sec.querySelectorAll('[data-rpi]').forEach(el => {
+    el.addEventListener('click', () => {
+      players.splice(+el.dataset.rpi, 1);
+      results = null;
+      activeSlot = {type:'player', pi:0, ci:0};
+      render();
+    });
+  });
+}
+
+function renderBoard() {
+  const container = document.getElementById('boardSlots');
+  container.innerHTML = '';
+  const labels = ['Flop','','','Turn','River'];
+  board.forEach((card, i) => {
+    if (i === 3) {
+      const d = document.createElement('span');
+      d.className = 'board-divider'; d.textContent = '|';
+      container.appendChild(d);
+    }
+    const active = isActive('board', i);
+    const wrap = document.createElement('div');
+    wrap.className = 'board-slot-wrap';
+    wrap.innerHTML = '<div class="card-slot' + (card?' filled':'') + (active?' active':'') + '" data-bt="b" data-bi="' + i + '">'
+                   + cardFaceHTML(card)
+                   + '</div><div class="board-slot-label">' + (labels[i]||'') + '</div>';
+    container.appendChild(wrap);
+  });
+  container.querySelectorAll('[data-bt="b"]').forEach(el => {
+    el.addEventListener('click', () => {
+      const bi = +el.dataset.bi;
+      if (board[bi]) { board[bi] = null; results = null; }
+      activeSlot = {type:'board', ci:bi};
+      render();
+    });
+  });
+}
+
+function renderCardGrid() {
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = '';
+  const used = usedSet();
+  for (let s = 3; s >= 0; s--) {
+    for (let r = 12; r >= 0; r--) {
+      const isUsed = used.has(r*4+s);
+      const el = document.createElement('div');
+      el.className = 'deck-card ' + (IS_RED[s]?'red-card':'black-card') + (isUsed?' used':'');
+      el.innerHTML = '<span class="dr">' + RANKS[r] + '</span><span class="ds">' + SYMS[s] + '</span>';
+      if (!isUsed) el.addEventListener('click', () => assignCard({rank:r, suit:s}));
+      grid.appendChild(el);
+    }
+  }
+}
+
+function renderActiveInfo() {
+  const el = document.getElementById('activeInfo');
+  if (!activeSlot) { el.innerHTML = '<span class="dim">Click a card slot to start</span>'; return; }
+  if (activeSlot.type === 'player') {
+    el.innerHTML = 'Assigning → <span class="dim">Player ' + (activeSlot.pi+1) + ', Card ' + (activeSlot.ci+1) + '</span>';
+  } else {
+    const name = ['Flop 1','Flop 2','Flop 3','Turn','River'][activeSlot.ci];
+    el.innerHTML = 'Assigning → <span class="dim">Board ' + name + '</span>';
+  }
+}
+
+// ── Card assignment ────────────────────────────────────────────────────────
+function assignCard(card) {
+  if (!activeSlot) return;
+  if (activeSlot.type === 'player') {
+    players[activeSlot.pi].cards[activeSlot.ci] = card;
+  } else {
+    board[activeSlot.ci] = card;
+  }
+  results = null;
+  advance();
+  render();
+}
+
+function advance() {
+  if (activeSlot.type === 'player') {
+    const {pi, ci} = activeSlot;
+    if (ci+1 < 2 && !players[pi].cards[ci+1]) { activeSlot = {type:'player',pi,ci:ci+1}; return; }
+    for (let npi = pi+1; npi < players.length; npi++)
+      for (let nci = 0; nci < 2; nci++)
+        if (!players[npi].cards[nci]) { activeSlot = {type:'player',pi:npi,ci:nci}; return; }
+    for (let bi = 0; bi < 5; bi++)
+      if (!board[bi]) { activeSlot = {type:'board',ci:bi}; return; }
+  } else {
+    const {ci} = activeSlot;
+    if (ci+1 < 5 && !board[ci+1]) { activeSlot = {type:'board',ci:ci+1}; return; }
+  }
+}
+
+// ── Run ────────────────────────────────────────────────────────────────────
+document.getElementById('runBtn').addEventListener('click', () => {
+  const hands = players.map(p => p.cards.filter(Boolean));
+  if (hands.some(h => h.length < 2)) { setStatus('Each player needs 2 hole cards.'); return; }
+
+  const brd   = board.filter(Boolean);
+  const exact = brd.length === 5;
+  const nIter = 100000;
+
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.textContent = 'Simulating…';
+  setStatus(exact ? 'Computing exact result…' : 'Running ' + nIter.toLocaleString() + ' simulations…');
+
+  setTimeout(() => {
+    try {
+      if (exact) {
+        results = exactResult(hands, brd);
+        const winIdx = results.findIndex(r => r.win===1);
+        const tieIdx = results.map((r,i) => r.tie===1 ? i : -1).filter(i=>i>=0);
+        if (winIdx >= 0) setStatus('Player ' + (winIdx+1) + ' wins with ' + results[winIdx].handName);
+        else setStatus('Tie — ' + tieIdx.map(i=>'Player '+(i+1)).join(' & ') + ' (' + results[tieIdx[0]].handName + ')');
+      } else {
+        results = simulate(hands, brd, nIter);
+        const best = results.reduce((b,r,i) => r.win>results[b].win ? i : b, 0);
+        setStatus('Done · ' + nIter.toLocaleString() + ' simulations · Player ' + (best+1) + ' leads at ' + (results[best].win*100).toFixed(1) + '%');
+      }
+    } catch(e) {
+      setStatus('Error: ' + e.message);
+      console.error(e);
+    }
+    btn.disabled = false;
+    btn.textContent = 'Run Simulation';
+    render();
+  }, 15);
+});
+
+// ── Controls ───────────────────────────────────────────────────────────────
+document.getElementById('clearBtn').addEventListener('click', () => {
+  players    = [{cards:[null,null]},{cards:[null,null]}];
+  board      = [null,null,null,null,null];
+  results    = null;
+  activeSlot = {type:'player',pi:0,ci:0};
+  setStatus('');
+  render();
+});
+
+document.getElementById('addPlayerBtn').addEventListener('click', () => {
+  if (players.length >= 9) { setStatus('Maximum 9 players.'); return; }
+  players.push({cards:[null,null]});
+  render();
+});
+
+// Aces full vs quads example: AhAs Kc + board AcAdKdKhQs
+document.getElementById('exampleBtn').addEventListener('click', () => {
+  const c = (r,s) => ({rank:r,suit:s});
+  players = [
+    {cards:[c(12,2),c(12,3)]},  // Ah As
+    {cards:[c(11,0),c(9,0)]},   // Kc Jc
+  ];
+  board      = [c(12,0),c(12,1),c(11,2),null,null]; // Ac Ad Kh
+  results    = null;
+  activeSlot = {type:'board',ci:3};
+  setStatus('Example: Quad Aces vs Trip Kings on A-A-K flop');
+  render();
+});
+
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+// ── Init ───────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
